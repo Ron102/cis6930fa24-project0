@@ -61,11 +61,11 @@ def extractincidents(pdf_path):
         
 
     flat_list = [item for sublist in final_lines for item in sublist]
+    flat_list = [s for s in flat_list if s.strip() != "NORMAN POLICE DEPARTMENT"]
+    flat_list = [s for s in flat_list if s.strip() != "Daily Incident Summary (Public)"]
+    flat_list = [s for s in flat_list if "Date / Time" not in s]
 
     
-    del flat_list[0]
-    del flat_list[1]
-    del flat_list[2]
     flat_list.pop()
 
     return flat_list
@@ -95,36 +95,29 @@ def createdb():
 
 
 def populatedb(db_path, incidents):
-    pattern = re.compile(
-    r'(\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2})\s+'   
-    r'(\d{4}-\d+)\s+'                               
-    r'([A-Z0-9\s/]+)\s+'                            
-    r'([A-Za-z\s/]+)\s+'                            
-    r'(OK0140200|EMSSTAT|\d{5})'                    
-)
-
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     for line in incidents:
-        if not pattern.match(line):
+        fields = re.split(r'\s{2,}', line)
+        if len(fields) != 5:
+            print(f"Data format incorrect for: {line}")
             continue
-        match = pattern.match(line)
-        if match:
-            date_time, incident_number, location, nature, incident_ori = match.groups()
-            incident_time = date_time
-            values = (incident_time, incident_number, location.strip(), nature.strip(), incident_ori)
-            try:
-                cursor.execute('''
-                INSERT INTO incidents ("incident_time", "incident_number", "incident_location", "nature", "incident_ori")
-                VALUES (?, ?, ?, ?, ?)
-                ''', values)
-            except sqlite3.Error as e:
-                print(f"Error inserting row: {e}")
-    
+
+        date_time, incident_number, location, nature, incident_ori = fields
+
+        values = (date_time.strip(), incident_number.strip(), location.strip(), nature.strip(), incident_ori.strip())
+
+        try:
+            cursor.execute(''' 
+            INSERT INTO incidents ("incident_time", "incident_number", "incident_location", "nature", "incident_ori")
+            VALUES (?, ?, ?, ?, ?)
+            ''', values)
+        except sqlite3.Error as e:
+            print(f"Error inserting row: {e}")
+
     conn.commit()
     conn.close()
-
 
 
 def status(db_path):
