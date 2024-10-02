@@ -1,10 +1,8 @@
 import argparse
 import re
-import tempfile
 import urllib.request
 import sqlite3
 import os
-import tempfile
 import configparser
 from importlib import resources
 import pypdf
@@ -20,6 +18,8 @@ def main(url):
     populatedb(db, incidents)
 
     status(db)
+
+
 
 
 
@@ -44,6 +44,8 @@ def fetchincidents(url):
 
 
 
+
+
 def extractincidents(pdf_path):
     reader = PdfReader("downloaded_file.pdf")
     lines = []
@@ -59,7 +61,7 @@ def extractincidents(pdf_path):
         final_lines.append(i.split("\n"))
         
 
-    flat_list = [item for sublist in final_lines for item in sublist]
+    flat_list = [i for s in final_lines for i in s]
     flat_list = [s for s in flat_list if s.strip() != "NORMAN POLICE DEPARTMENT"]
     flat_list = [s for s in flat_list if s.strip() != "Daily Incident Summary (Public)"]
     flat_list = [s for s in flat_list if "Date / Time" not in s]
@@ -106,13 +108,10 @@ def populatedb(db_path, incidents):
 
         values = (date_time.strip(), incident_number.strip(), location.strip(), nature.strip(), incident_ori.strip())
 
-        try:
-            cursor.execute(''' 
-            INSERT INTO incidents ("incident_time", "incident_number", "incident_location", "nature", "incident_ori")
-            VALUES (?, ?, ?, ?, ?)
-            ''', values)
-        except sqlite3.Error as e:
-            print(f"Error inserting row: {e}")
+        cursor.execute(''' 
+        INSERT INTO incidents ("incident_time", "incident_number", "incident_location", "nature", "incident_ori")
+        VALUES (?, ?, ?, ?, ?)
+        ''', values)
 
     conn.commit()
     conn.close()
@@ -127,19 +126,13 @@ def status(db_path):
     GROUP BY nature
     ORDER BY nature ASC
     '''
-    
-    try:
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        for row in rows:
-            nature, count = row
-            print(f"{nature}|{count}")
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    for row in rows:
+        nature, count = row
+        print(f"{nature}|{count}")
 
-    except sqlite3.Error as e:
-        print(f"An error occurred: {e}")
-    
-    finally:
-        conn.close()
+    conn.close()
 
 
 
