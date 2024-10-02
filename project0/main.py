@@ -1,7 +1,6 @@
 import argparse
 import re
 import tempfile
-#import project0
 import urllib.request
 import sqlite3
 import os
@@ -101,7 +100,6 @@ def populatedb(db_path, incidents):
     for line in incidents:
         fields = re.split(r'\s{2,}', line)
         if len(fields) != 5:
-            print(f"Data format incorrect for: {line}")
             continue
 
         date_time, incident_number, location, nature, incident_ori = fields
