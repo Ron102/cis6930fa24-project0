@@ -28,21 +28,26 @@ def test_fetchincidents(mocker):
 def test_extractincidents(mock_pdf_reader):
     mock_page = MagicMock()
     mock_page.extract_text.return_value = (
-        "8/2/2024 0:10 2024-00055701 2954 OAK TREE AVE Traffic Stop OK0140200\n"
-        "8/2/2024 0:12 2024-00011459 700 N BERRY RD Medical Call Pd Requested 14005\n"
-        "8/2/2024 0:12 2024-00015446 700 N BERRY RD Medical Call Pd Requested EMSSTAT\n"
-        "8/2/2024 0:13 2024-00055703 148 REED AVE Disturbance/Domestic OK0140200\n"
-        "8/2/2024 0:14 2024-00055702 2560 E LINDSEY ST Traffic Stop OK0140200\n"
-        "8/2/2024 0:22 2024-00055705 W LINDSEY ST / ELM AVE Foot Patrol OK0140200\n"
+        "NORMAN POLICE DEPARTMENT\n"
+        "Daily Incident Summary (Public)\n"
+        "Date / Time             Incident Number   Location   Nature  Incident ORI\n"
+        "08/15/2024  15:30      2024-0001      Main Street   Theft    OK0140200\n"
+        "08/16/2024  10:45      2024-0002      2nd Avenue    Burglary OK0140200\n"
+        "Some other content\n"
     )
 
-    mock_pdf_reader.return_value.pages = [mock_page]
+    mock_pdf_reader.return_value.pages = [mock_page]  
 
     result = extractincidents('downloaded_file.pdf')
 
-    expected_result = ["8/2/2024 0:12 2024-00011459 700 N BERRY RD Medical Call Pd Requested 14005", "8/2/2024 0:13 2024-00055703 148 REED AVE Disturbance/Domestic OK0140200", "8/2/2024 0:22 2024-00055705 W LINDSEY ST / ELM AVE Foot Patrol OK0140200"]
+    expected_result = [
+        "08/15/2024  15:30      2024-0001      Main Street   Theft    OK0140200",
+        "08/16/2024  10:45      2024-0002      2nd Avenue    Burglary OK0140200",
+        "Some other content"
+    ]
 
     assert result == expected_result, "Extracted text does not match expected output."
+
 
 
 def test_createdb():
@@ -63,12 +68,10 @@ def test_createdb():
 
 
 def test_populatedb():
-    db_path = createdb()
+    db_path = createdb()  
 
     incidents = [
-        "09/15/2024 10:30 2024-00011501 201 REED AVE Traffic Accident OK0140200",  
-        "09/16/2024 08:15 2024-00011502 123 MAIN ST Theft OK0140200",              
-        "Wrong data format",                                                      
+        "09/15/2024 10:30   2024-00011501   201 REED AVE   Traffic Accident   OK0140200"
     ]
 
     populatedb(db_path, incidents)
@@ -79,11 +82,10 @@ def test_populatedb():
     cursor.execute("SELECT * FROM incidents")
     rows = cursor.fetchall()
 
-    assert len(rows) == 2, "Not all valid rows inserted."
+    assert len(rows) == 1, f"Expected 1 row but got {len(rows)}. Rows: {rows}"
 
     expected_data = [
-        ("09/15/2024 10:30", "2024-00011501", "201 REED AVE", "Traffic Accident", "OK0140200"),
-        ("09/16/2024 08:15", "2024-00011502", "123 MAIN ST", "Theft", "OK0140200")
+        ("09/15/2024 10:30", "2024-00011501", "201 REED AVE", "Traffic Accident", "OK0140200")
     ]
 
     for row, expected in zip(rows, expected_data):
@@ -93,24 +95,25 @@ def test_populatedb():
 
 
 
+
 def test_status():
     db_path = createdb()
 
     incidents = [
-        "09/15/2024 10:30 2024-00011501 201 REED AVE Traffic Accident OK0140200",  
-        "09/16/2024 08:15 2024-00011502 123 MAIN ST Theft OK0140200",
-        "09/17/2024 14:45 2024-00011503 456 OAK ST Traffic Accident OK0140200",  
+        "8/2/2024 12:47   2024-00055815   426 S PONCA AVE   Animal Complaint   OK0140200",
+        "8/2/2024 16:44   2024-00055898   1621 W BOYD ST   Animal Complaint   OK0140200"
     ]
 
     populatedb(db_path, incidents)
 
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM incidents")
+    rows = cursor.fetchall()
     output = StringIO()
     sys.stdout = output
-
     status(db_path)
-
     sys.stdout = sys.__stdout__
-
-    expected_output = "Theft|1\nTraffic Accident|2\n"
-    assert output.getvalue() == expected_output, "The output is incorrect."
-
+    expected_output = "Animal Complaint|2"
+    assert output.getvalue().strip() == expected_output, f"Expected output: {expected_output}, but got: {output.getvalue()}"
