@@ -31,9 +31,9 @@ def test_extractincidents(mock_pdf_reader):
         "NORMAN POLICE DEPARTMENT\n"
         "Daily Incident Summary (Public)\n"
         "Date / Time             Incident Number   Location   Nature  Incident ORI\n"
-        "08/15/2024  15:30      2024-0001      Main Street   Theft    OK0140200\n"
-        "08/16/2024  10:45      2024-0002      2nd Avenue    Burglary OK0140200\n"
-        "Some other content\n"
+        "8/2/2024 0:10    2024-00055701    2954 OAK TREE AVE    Traffic Stop    OK0140200\n"
+        "8/2/2024 0:12    2024-00015446    700 N BERRY RD    Medical Call Pd Requested    EMSSTAT\n"
+        "xyz\n"
     )
 
     mock_pdf_reader.return_value.pages = [mock_page]  
@@ -41,12 +41,11 @@ def test_extractincidents(mock_pdf_reader):
     result = extractincidents('downloaded_file.pdf')
 
     expected_result = [
-        "08/15/2024  15:30      2024-0001      Main Street   Theft    OK0140200",
-        "08/16/2024  10:45      2024-0002      2nd Avenue    Burglary OK0140200",
-        "Some other content"
-    ]
+        "8/2/2024 0:10    2024-00055701    2954 OAK TREE AVE    Traffic Stop    OK0140200",
+        "8/2/2024 0:12    2024-00015446    700 N BERRY RD    Medical Call Pd Requested    EMSSTAT",
+        "xyz"]
 
-    assert result == expected_result, "Extracted text does not match expected output."
+    assert result == expected_result
 
 
 
@@ -61,7 +60,7 @@ def test_createdb():
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='incidents';")
     table_exists = cur.fetchone()
 
-    assert table_exists is not None, "'incidents' table not created."
+    assert table_exists is not None
 
     con.close()
 
@@ -70,9 +69,7 @@ def test_createdb():
 def test_populatedb():
     db_path = createdb()  
 
-    incidents = [
-        "09/15/2024 10:30   2024-00011501   201 REED AVE   Traffic Accident   OK0140200"
-    ]
+    incidents = ["09/15/2024 10:30   2024-00011501   201 REED AVE   Traffic Accident   OK0140200"]
 
     populatedb(db_path, incidents)
 
@@ -82,14 +79,12 @@ def test_populatedb():
     cursor.execute("SELECT * FROM incidents")
     rows = cursor.fetchall()
 
-    assert len(rows) == 1, f"Expected 1 row but got {len(rows)}. Rows: {rows}"
+    assert len(rows) == 1
 
-    expected_data = [
-        ("09/15/2024 10:30", "2024-00011501", "201 REED AVE", "Traffic Accident", "OK0140200")
-    ]
+    expected_data = [("09/15/2024 10:30", "2024-00011501", "201 REED AVE", "Traffic Accident", "OK0140200")]
 
     for row, expected in zip(rows, expected_data):
-        assert row == expected, f"Expected {expected} but got {row}"
+        assert row == expected
 
     conn.close()
 
@@ -99,10 +94,7 @@ def test_populatedb():
 def test_status():
     db_path = createdb()
 
-    incidents = [
-        "8/2/2024 12:47   2024-00055815   426 S PONCA AVE   Animal Complaint   OK0140200",
-        "8/2/2024 16:44   2024-00055898   1621 W BOYD ST   Animal Complaint   OK0140200"
-    ]
+    incidents = ["8/2/2024 12:47   2024-00055815   426 S PONCA AVE   Animal Complaint   OK0140200", "8/2/2024 16:44   2024-00055898   1621 W BOYD ST   Animal Complaint   OK0140200"]
 
     populatedb(db_path, incidents)
 
@@ -115,5 +107,5 @@ def test_status():
     sys.stdout = output
     status(db_path)
     sys.stdout = sys.__stdout__
-    expected_output = "Animal Complaint|2"
-    assert output.getvalue().strip() == expected_output, f"Expected output: {expected_output}, but got: {output.getvalue()}"
+    exp_op = "Animal Complaint|2"
+    assert output.getvalue().strip() == exp_op
